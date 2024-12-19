@@ -3,6 +3,7 @@ import threading
 import random
 import os
 from dotenv import load_dotenv
+from generate_ratios import generate_profit_ratios
 
 load_dotenv()
 
@@ -21,14 +22,14 @@ HEADERS = {
     "APCA-API-SECRET-KEY": SECRET_KEY,
 }
 
-def trade_thread(symbol, side, profit_ratio, qty=1):
+def trade_thread(symbol, side, profit_ratios, qty=1):
     """
     Thread function to handle buy or sell trades.
     
     Args:
         symbol (str): Stock symbol.
         side (str): Trade side, either 'buy' or 'sell'.
-        profit_ratio (float): Profit ratio for stop-loss and take-profit calculation.
+        profit_ratios (list): List containing [buy_ratio, sell_ratio].
         qty (int): Quantity of stocks to trade. Defaults to 1.
     """
     try:
@@ -40,15 +41,15 @@ def trade_thread(symbol, side, profit_ratio, qty=1):
         entry_price = float(latest_trade_data['trade']['p'])
 
         # Calculate stop-loss and take-profit prices
-        stop_loss_distance = entry_price * (1 / profit_ratio)
-        take_profit_distance = entry_price * (profit_ratio / 1)
-        
+        take_profit_distance = entry_price * profit_ratios[0]
+        stop_loss_distance = entry_price * profit_ratios[1]
+
         if side == "buy":
-            stop_loss_price = round(entry_price - stop_loss_distance, 2)
             take_profit_price = round(entry_price + take_profit_distance, 2)
-        else:
-            stop_loss_price = round(entry_price + stop_loss_distance, 2)
+            stop_loss_price = round(entry_price - stop_loss_distance, 2)
+        else: # == "sell"
             take_profit_price = round(entry_price - take_profit_distance, 2)
+            stop_loss_price = round(entry_price + stop_loss_distance, 2)
 
         # Check if stop loss or take profit are zero
         if stop_loss_price == 0.0 or take_profit_price == 0.0:
@@ -77,7 +78,6 @@ def trade_thread(symbol, side, profit_ratio, qty=1):
         response = requests.post(BASE_ORDER_URL, json=payload, headers=HEADERS)
         print("-------------------------")
         print(f"Order Response for {symbol} ({side}): {response.text}")
-        print("-------------------------")
     except ValueError as ve:
         print(f"ValueError: {ve}")
     except Exception as e:
@@ -98,8 +98,8 @@ def create_threads(symbol, ratios, side):
     return [threading.Thread(target=trade_thread, args=(symbol, side, ratio)) for ratio in ratios]
 
 # Trade settings
-symbol = "NDAQ"
-profit_ratios = [1/1, 2/1, 3/1, 4/1, 5/1, 3/2, 5/2, 4/3, 5/3, 5/4]
+symbol = "AMD"
+profit_ratios = generate_profit_ratios(20)
 
 # Randomly decide trade direction
 is_buy = random.choice([True, False])  # Randomly pick True or False
@@ -123,5 +123,5 @@ for thread in threads:
 # Wait for all threads to complete
 for thread in threads:
     thread.join()
-
+print("-------------------------")
 print("Trading completed.")
