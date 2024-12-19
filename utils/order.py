@@ -3,7 +3,7 @@ import threading
 import random
 import os
 from dotenv import load_dotenv
-from generate_ratios import generate_profit_ratios
+from utils.generate_ratios import generate_profit_ratios
 
 load_dotenv()
 
@@ -47,7 +47,7 @@ def trade_thread(symbol, side, profit_ratios, qty=1):
         if side == "buy":
             take_profit_price = round(entry_price + take_profit_distance, 2)
             stop_loss_price = round(entry_price - stop_loss_distance, 2)
-        else: # == "sell"
+        else:  # == "sell"
             take_profit_price = round(entry_price - take_profit_distance, 2)
             stop_loss_price = round(entry_price + stop_loss_distance, 2)
 
@@ -76,8 +76,11 @@ def trade_thread(symbol, side, profit_ratios, qty=1):
 
         # Submit the order
         response = requests.post(BASE_ORDER_URL, json=payload, headers=HEADERS)
-        print("-------------------------")
-        print(f"Order Response for {symbol} ({side}): {response.text}")
+        
+        
+        # print(f"\n -----------------------------------------------------------\n"
+        #        f"Order Response for {symbol} ({side}): {response.text}")
+
     except ValueError as ve:
         print(f"ValueError: {ve}")
     except Exception as e:
@@ -97,31 +100,35 @@ def create_threads(symbol, ratios, side):
     """
     return [threading.Thread(target=trade_thread, args=(symbol, side, ratio)) for ratio in ratios]
 
-# Trade settings
-symbol = "AMD"
-profit_ratios = generate_profit_ratios(20)
+def run_trading(symbol="NDAQ", profit_ratios_count=20):
+    """
+    Run the trading process by creating threads for buy or sell actions with random profit ratios.
 
-# Randomly decide trade direction
-is_buy = random.choice([True, False])  # Randomly pick True or False
+    Args:
+        symbol (str): The stock symbol to trade.
+        profit_ratios_count (int): The number of profit ratios to generate for trading.
+    """
+    # Generate random profit ratios
+    profit_ratios = generate_profit_ratios(profit_ratios_count)
 
-# Create threads based on the random trade direction
-if is_buy:
-    print("-------------------------")
-    print("Executing Buy Threads...")
-    print("-------------------------")
-    threads = create_threads(symbol, profit_ratios, "buy")
-else:
-    print("-------------------------")
-    print("Executing Sell Threads...")
-    print("-------------------------")
-    threads = create_threads(symbol, profit_ratios, "sell")
+    # Randomly decide trade direction (buy or sell)
+    is_buy = random.choice([True, False])
 
-# Start all threads
-for thread in threads:
-    thread.start()
+    # Create threads based on the trade direction
+    side = "buy" if is_buy else "sell"
+    action = "Buy" if is_buy else "Sell"
+    print(f"-------------------------\nExecuting {action} Threads...\n-------------------------")
+    threads = create_threads(symbol, profit_ratios, side)
 
-# Wait for all threads to complete
-for thread in threads:
-    thread.join()
-print("-------------------------")
-print("Trading completed.")
+    # Start all threads
+    for thread in threads:
+        thread.start()
+
+    # Wait for all threads to complete
+    for thread in threads:
+        thread.join()
+
+    print("-------------------------\nTrading completed.")
+
+if __name__ == "__main__":
+    run_trading()
