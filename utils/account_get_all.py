@@ -9,7 +9,6 @@ BROKER_AUTH = os.getenv("alpaca_broker_auth")
 # Base URL for Broker API
 BASE_URL = "https://broker-api.sandbox.alpaca.markets/v1/accounts"
 
-
 # Headers for authentication
 HEADERS = {
     "accept": "application/json",
@@ -43,6 +42,6 @@ def get_all_accounts(page=1, per_page=100):
         return []
 
 accounts = get_all_accounts(page=1, per_page=50)
-print(f"Total accounts retrieved: {len(accounts)}")
-for account in accounts:
-    print(account)
+account_ids = [account['id'] for account in accounts]
+
+print(f"Account IDs: {account_ids}")
