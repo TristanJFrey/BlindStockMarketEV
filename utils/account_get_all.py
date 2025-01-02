@@ -1,5 +1,6 @@
 import requests
 import os
+import json
 from dotenv import load_dotenv
 
 # Load Broker Auth credentials from .env file
@@ -41,7 +42,20 @@ def get_all_accounts(page=1, per_page=100):
         print(f"Error fetching accounts: {e}")
         return []
 
+# Fetch accounts
 accounts = get_all_accounts(page=1, per_page=50)
+
+# Extract account IDs
 account_ids = [account['id'] for account in accounts]
 
-print(f"Account IDs: {account_ids}")
+# Ensure the "JSON" subdirectory exists, relative to the script location
+script_dir = os.path.dirname(os.path.abspath(__file__))
+output_dir = os.path.join(script_dir, "JSON")
+os.makedirs(output_dir, exist_ok=True)
+
+# Save account IDs to the "JSON" directory
+output_file = os.path.join(output_dir, "account_raw_ids.json")
+with open(output_file, "w") as file:
+    json.dump(account_ids, file, indent=4)
+
+print(f"Account IDs saved to {output_file}")
